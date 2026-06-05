@@ -1,122 +1,90 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { getCurrentUser, logout } from "./API.js";
+import Navigation from "./components/Navigation.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
+import PlanningPage from "./pages/PlanningPage.jsx";
+import RankingPage from "./pages/RankingPage.jsx";
+import SetupPage from "./pages/SetupPage.jsx";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function ProtectedRoute({ user, children }) {
+  if (!user) return <Navigate to="/login" replace />; // Replace the current entry in the history stack to prevent going back to the protected page after login
+  return children;
 }
 
-export default App
+function App() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null); // Logged user state or null
+  const [checkingSession, setCheckingSession] = useState(true); // State to indicate if session is being checked
+
+  useEffect(() => {
+    let active = true;
+
+    getCurrentUser()
+      .then((loggedUser) => {
+        if (active) setUser(loggedUser);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+
+    return () => { // Cleanup function to prevent state updates if the component unmounts before the async operation completes
+      active = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    await logout();
+    setUser(null);
+    navigate("/");
+  }
+
+  if (checkingSession) {
+    return <main className="app-shell loading-view">Loading...</main>;
+  }
+
+  return (
+    <div className="app-shell">
+      <Navigation user={user} onLogout={handleLogout} />
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage user={user} />} />
+          <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
+          <Route
+            path="/setup"
+            element={
+              <ProtectedRoute user={user}>
+                <SetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ranking"
+            element={
+              <ProtectedRoute user={user}>
+                <RankingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/games/:gameId/planning"
+            element={
+              <ProtectedRoute user={user}>
+                <PlanningPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+export default App;
