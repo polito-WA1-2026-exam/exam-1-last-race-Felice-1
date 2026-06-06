@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getPlanningData, submitGameRoute } from "../API.js";
 import NetworkMap from "../components/NetworkMap.jsx";
 
@@ -8,19 +8,18 @@ function segmentKey(from, to) {
 }
 
 function stationName(stations, id) {
-  return stations.find((station) => station.id === id)?.name ?? `Station ${id}`; // Fallback to "Station {id}" if the station is not found, to avoid displaying undefined in the UI
+  return stations.find((station) => station.id === id)?.name ?? `Station ${id}`;
 }
 
 function PlanningPage() {
-  const { gameId } = useParams(); // Get the gameId from the URL parameters using useParams hook from react-router-dom
+  const { gameId } = useParams();
+  const navigate = useNavigate(); // Hook to programmatically navigate to ExecutionPage or ResultPage after submitting the route
   const [game, setGame] = useState(null);
   const [network, setNetwork] = useState(null);
   const [route, setRoute] = useState([]);
-  const [secondsLeft, setSecondsLeft] = useState(90);
+  const [secondsLeft, setSecondsLeft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -31,6 +30,8 @@ function PlanningPage() {
         if (!active) return;
         setGame(data.game);
         setNetwork(data.network);
+        const millisecondsLeft = Date.parse(data.game.planningDeadline) - Date.now(); // Calculate the remaining time using the planning deadline from the game data
+        setSecondsLeft(Math.max(0, Math.ceil(millisecondsLeft / 1000)));
       })
       .catch((err) => {
         if (active) setError(err.message);
@@ -44,7 +45,7 @@ function PlanningPage() {
     };
   }, [gameId]);
 
-  const usedSegments = useMemo( // Compute the set of used segments based on the current route, to easily check if a segment has already been used
+  const usedSegments = useMemo(
     () => new Set(route.map((step) => segmentKey(step.from, step.to))),
     [route],
   );
@@ -52,45 +53,46 @@ function PlanningPage() {
   const currentStationId = route.length > 0 ? route.at(-1).to : game?.startStationId;
 
   const handleSubmitRoute = useCallback(async () => {
-    if (!game || submitted || submitting) return;
+    if (!game || submitting) return; // Prevent submitting if game data is not loaded or if a submission is already in progress
 
     setSubmitting(true);
     setError("");
 
     try {
       const routeResult = await submitGameRoute(game.id, route);
-      setResult(routeResult);
-      setSubmitted(true);
+      if (routeResult.valid) navigate(`/games/${game.id}/execution`);
+      else navigate(`/games/${game.id}/result`);
     } catch (err) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
     }
-  }, [game, route, submitted, submitting]);
+  }, [game, navigate, route, submitting]);
 
-  useEffect(() => { // Timer effect to count down the seconds left for planning, and automatically submit the route when time runs out
-    if (loading || submitted || result) return undefined;
-
-    if (secondsLeft === 0) return undefined;
+  useEffect(() => {
+    if (loading || submitting || secondsLeft === null) return undefined;
 
     const timerId = setTimeout(() => {
-      if (secondsLeft === 1) handleSubmitRoute();
-      setSecondsLeft((current) => current - 1);
+      if (secondsLeft <= 1) {
+        setSecondsLeft(0);
+        handleSubmitRoute();
+      } else {
+        setSecondsLeft((current) => current - 1);
+      }
     }, 1000);
 
     return () => clearTimeout(timerId);
-  }, [handleSubmitRoute, loading, result, secondsLeft, submitted]);
+  }, [handleSubmitRoute, loading, secondsLeft, submitting]);
 
   function addSegment(segment) {
-    if (currentStationId == null || submitted) return;
+    if (currentStationId == null || submitting) return;
 
     const key = segmentKey(segment.from, segment.to);
     if (usedSegments.has(key)) return;
 
     if (segment.from === currentStationId) {
-      setRoute((currentRoute) => [...currentRoute, { from: segment.from, to: segment.to }]); // Destructure the segment object to ensure we are always adding segments in the direction of travel
+      setRoute((currentRoute) => [...currentRoute, { from: segment.from, to: segment.to }]);
     } else if (segment.to === currentStationId) {
-      setRoute((currentRoute) => [...currentRoute, { from: segment.to, to: segment.from }]); // This allows the user to select segments in either direction, and we will normalize it to always add it in the direction of travel based on the current station
+      setRoute((currentRoute) => [...currentRoute, { from: segment.to, to: segment.from }]);
     }
   }
 
@@ -113,7 +115,7 @@ function PlanningPage() {
           <p className="eyebrow">Planning phase</p>
           <h1>Build your route</h1>
         </div>
-        <div className="timer-box">{secondsLeft}s</div>
+        <div className="timer-box">{secondsLeft ?? 0}s</div>
       </div>
 
       {error && <p className="error-message">{error}</p>}
@@ -130,7 +132,19 @@ function PlanningPage() {
 
           <div className="planning-layout">
             <div className="map-panel">
-              <NetworkMap network={network} showLines={false} showSegments={false} />
+              <NetworkMap
+                network={network}
+                showLines={false}
+                showSegments={false}
+                startStationId={game.startStationId}
+                destinationStationId={game.destinationStationId}
+                currentStationId={currentStationId}
+              />
+              <div className="map-legend">
+                <span className="legend-start">Start</span>
+                <span className="legend-current">Current</span>
+                <span className="legend-destination">Destination</span>
+              </div>
             </div>
 
             <aside className="planning-panel">
@@ -140,7 +154,7 @@ function PlanningPage() {
                   const key = segmentKey(segment.from, segment.to);
                   const used = usedSegments.has(key);
                   const selectable =
-                    !submitted &&
+                    !submitting &&
                     !used &&
                     (segment.from === currentStationId || segment.to === currentStationId);
 
@@ -177,35 +191,33 @@ function PlanningPage() {
               </ol>
             )}
 
-            <div className="action-row">
+            <div className="action-row button-group">
               <button
                 type="button"
                 className="secondary-button"
                 onClick={removeLastSegment}
-                disabled={route.length === 0 || submitted}
+                disabled={route.length === 0 || submitting}
               >
                 Undo last segment
               </button>
               <button
                 type="button"
+                className="secondary-button"
+                onClick={() => setRoute([])}
+                disabled={route.length === 0 || submitting}
+              >
+                Clear route
+              </button>
+              <button
+                type="button"
                 className="primary-button"
                 onClick={handleSubmitRoute}
-                disabled={submitted || submitting}
+                disabled={submitting}
               >
                 {submitting ? "Submitting..." : "Submit route"}
               </button>
             </div>
           </div>
-
-          {result && (
-            <div className={result.valid ? "result-box success" : "result-box danger"}>
-              {result.valid ? (
-                <p>Valid route. Final score: {result.finalScore} coins.</p>
-              ) : (
-                <p>Invalid route: {result.reason}. Final score: 0 coins.</p>
-              )}
-            </div>
-          )}
         </>
       )}
     </section>

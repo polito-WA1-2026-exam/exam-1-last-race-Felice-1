@@ -2,7 +2,14 @@ function stationById(stations, id) {
   return stations.find((station) => station.id === id);
 }
 
-function NetworkMap({ network, showLines = true, showSegments = true }) {
+function NetworkMap({
+  network,
+  showLines = true,
+  showSegments = true,
+  startStationId,
+  destinationStationId,
+  currentStationId,
+}) {
   if (!network) return null;
 
   return (
@@ -40,7 +47,17 @@ function NetworkMap({ network, showLines = true, showSegments = true }) {
 
       {network.stations.map((station) => (
         <g key={station.id}>
-          <circle cx={station.x} cy={station.y} r="12" className="station-dot" />
+          <circle
+            cx={station.x}
+            cy={station.y}
+            r="12"
+            className={[
+              "station-dot",
+              station.id === startStationId ? "start-station" : "",
+              station.id === destinationStationId ? "destination-station" : "",
+              station.id === currentStationId ? "current-station" : "",
+            ].join(" ")}
+          />
           <text x={station.x + 16} y={station.y - 10} className="station-label">
             {station.name}
           </text>

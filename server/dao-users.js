@@ -7,10 +7,10 @@ export async function getUserById(id) {
 }
 
 export async function getUserByCredentials(username, password) {
-  const user = await get("SELECT * FROM users WHERE username = ?", [username]);
+  const user = await get("SELECT * FROM users WHERE username = ?", [username.trim()]);
   if (!user) return false;
 
-  const valid = verifyPassword(password, user.password_salt, user.password_hash);
+  const valid = await verifyPassword(password, user.password_salt, user.password_hash);
   if (!valid) return false;
 
   return {

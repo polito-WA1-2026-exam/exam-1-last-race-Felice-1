@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { getCurrentUser, logout } from "./API.js";
 import Navigation from "./components/Navigation.jsx";
+import ExecutionPage from "./pages/ExecutionPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import PlanningPage from "./pages/PlanningPage.jsx";
 import RankingPage from "./pages/RankingPage.jsx";
+import ResultPage from "./pages/ResultPage.jsx";
 import SetupPage from "./pages/SetupPage.jsx";
 import "./App.css";
 
@@ -77,6 +79,22 @@ function App() {
             element={
               <ProtectedRoute user={user}>
                 <PlanningPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/games/:gameId/execution"
+            element={
+              <ProtectedRoute user={user}>
+                <ExecutionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/games/:gameId/result"
+            element={
+              <ProtectedRoute user={user}>
+                <ResultPage />
               </ProtectedRoute>
             }
           />

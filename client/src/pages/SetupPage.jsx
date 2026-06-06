@@ -66,6 +66,14 @@ function SetupPage() {
       {network && (
         <div className="map-panel">
           <NetworkMap network={network} />
+          <div className="line-legend" aria-label="Metro lines">
+            {network.lines.map((line) => (
+              <span key={line.id}>
+                <span className="line-swatch" style={{ backgroundColor: line.color }} />
+                {line.name}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

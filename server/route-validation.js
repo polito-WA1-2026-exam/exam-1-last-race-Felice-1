@@ -55,6 +55,14 @@ export function validateRoute(game, route, network) {
     return { valid: false, reason: "The route is empty" };
   }
 
+  if (
+    route.some(
+      (step) => step === null || typeof step !== "object" || Array.isArray(step),
+    )
+  ) {
+    return { valid: false, reason: "The route contains an invalid segment" };
+  }
+
   const stationIds = new Set(network.stations.map((station) => station.id));
   const segmentsByKey = new Map(
     network.segments.map((segment) => [segmentKey(segment.from, segment.to), segment]),

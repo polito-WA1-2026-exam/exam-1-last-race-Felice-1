@@ -8,10 +8,20 @@ export function hashPassword(password, salt = crypto.randomBytes(16).toString("h
 }
 
 export function verifyPassword(password, salt, storedHash) {
-  const { hash } = hashPassword(password, salt);
-  const hashBuffer = Buffer.from(hash, "hex");
-  const storedBuffer = Buffer.from(storedHash, "hex");
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, KEY_LENGTH, (err, derivedKey) => {
+      if (err) {
+        reject(err);
+        return;
+      }
 
-  if (hashBuffer.length !== storedBuffer.length) return false;
-  return crypto.timingSafeEqual(hashBuffer, storedBuffer);
+      const storedBuffer = Buffer.from(storedHash, "hex");
+      if (derivedKey.length !== storedBuffer.length) {
+        resolve(false);
+        return;
+      }
+
+      resolve(crypto.timingSafeEqual(derivedKey, storedBuffer));
+    });
+  });
 }

@@ -101,6 +101,8 @@ async function createSchema() {
       final_score INTEGER,
       route_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      planning_deadline TEXT,
+      failure_reason TEXT,
       completed_at TEXT
     )
   `);
@@ -116,6 +118,11 @@ async function createSchema() {
       coins_after INTEGER NOT NULL
     )
   `);
+
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS game_events_game_step
+    ON game_events(game_id, step_index)
+  `); // Ensure we have a unique index on game_id and step_index to prevent duplicate entries for the same step in a game
 }
 
 async function seedDatabase() {
@@ -166,9 +173,9 @@ async function seedDatabase() {
   await run(`
     INSERT INTO games (user_id, start_station_id, destination_station_id, status, final_score, route_json, completed_at)
     VALUES
-      (1, 1, 5, 'completed', 24, '[1,2,3,4,5]', CURRENT_TIMESTAMP),
-      (1, 6, 12, 'completed', 17, '[6,10,11,12]', CURRENT_TIMESTAMP),
-      (2, 9, 1, 'completed', 21, '[9,8,7,6,1]', CURRENT_TIMESTAMP)
+      (1, 1, 5, 'completed', 24, '[{"from":1,"to":2},{"from":2,"to":3},{"from":3,"to":4},{"from":4,"to":5}]', CURRENT_TIMESTAMP),
+      (1, 6, 12, 'completed', 17, '[{"from":6,"to":10},{"from":10,"to":11},{"from":11,"to":12}]', CURRENT_TIMESTAMP),
+      (2, 9, 1, 'completed', 21, '[{"from":9,"to":8},{"from":8,"to":7},{"from":7,"to":6},{"from":6,"to":1}]', CURRENT_TIMESTAMP)
   `);
 }
 

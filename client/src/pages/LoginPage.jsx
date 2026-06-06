@@ -4,8 +4,8 @@ import { login } from "../API.js";
 
 function LoginPage({ user, onLogin }) {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("alice");
-  const [password, setPassword] = useState("password");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [waiting, setWaiting] = useState(false);
 
@@ -17,7 +17,7 @@ function LoginPage({ user, onLogin }) {
     setError("");
 
     try {
-      const loggedUser = await login({ username, password });
+      const loggedUser = await login({ username: username.trim(), password });
       onLogin(loggedUser);
       navigate("/setup");
     } catch (err) {
@@ -37,13 +37,18 @@ function LoginPage({ user, onLogin }) {
 
         <label>
           Username
-          <input value={username} onChange={(event) => setUsername(event.target.value)} />
+          <input
+            required
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+          />
         </label>
 
         <label>
           Password
           <input
             type="password"
+            required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />

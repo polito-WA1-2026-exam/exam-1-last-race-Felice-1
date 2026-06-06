@@ -228,6 +228,21 @@ h2 {
   stroke-width: 4;
 }
 
+.station-dot.start-station {
+  fill: #d8f3e2;
+  stroke: #237a45;
+}
+
+.station-dot.destination-station {
+  fill: #ffe2df;
+  stroke: #b42318;
+}
+
+.station-dot.current-station {
+  stroke: #1f6f8b;
+  stroke-width: 7;
+}
+
 .station-label {
   fill: #17202a;
   font-size: 16px;
@@ -275,6 +290,68 @@ h2 {
 
 .planning-summary p {
   margin: 0;
+}
+
+.map-legend,
+.line-legend,
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.map-legend {
+  justify-content: center;
+  padding: 8px 0 4px;
+  color: #516070;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.line-legend {
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+  color: #516070;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.line-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.line-swatch {
+  width: 24px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.map-legend span::before {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border: 2px solid;
+  border-radius: 50%;
+  content: "";
+}
+
+.legend-start::before {
+  border-color: #237a45;
+  background: #d8f3e2;
+}
+
+.legend-current::before {
+  border-color: #1f6f8b;
+  background: #ffffff;
+}
+
+.legend-destination::before {
+  border-color: #b42318;
+  background: #ffe2df;
 }
 
 .planning-layout {
@@ -352,6 +429,93 @@ h2 {
 }
 
 .result-box.danger {
+  border-color: #e5aaa4;
+  background: #fff1f0;
+  color: #b42318;
+}
+
+.coin-box {
+  min-width: 128px;
+  padding: 10px 14px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17202a;
+  font-size: 20px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.execution-progress {
+  margin: 0 0 12px;
+  color: #657487;
+  font-weight: 800;
+}
+
+.execution-stage,
+.score-display {
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.execution-stage {
+  min-height: 280px;
+  padding: 48px;
+  text-align: center;
+}
+
+.execution-stage h2 {
+  margin: 20px 0 8px;
+  font-size: 30px;
+}
+
+.execution-stage p {
+  margin: 8px 0;
+}
+
+.journey-label {
+  color: #516070;
+  font-weight: 800;
+}
+
+.positive-effect,
+.negative-effect {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.positive-effect {
+  color: #146c2e;
+}
+
+.negative-effect {
+  color: #b42318;
+}
+
+.score-display {
+  max-width: 620px;
+  padding: 40px;
+}
+
+.score-display strong {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 48px;
+}
+
+.score-display p {
+  margin: 0;
+  font-size: 18px;
+}
+
+.score-display.success {
+  border-color: #9bc9ac;
+  background: #ecf8f0;
+  color: #146c2e;
+}
+
+.score-display.danger {
   border-color: #e5aaa4;
   background: #fff1f0;
   color: #b42318;

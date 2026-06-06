@@ -8,7 +8,15 @@ import LocalStrategy from "passport-local";
 import { initDatabase } from "./init-db.js";
 import { getUserByCredentials, getUserById } from "./dao-users.js";
 import { getNetwork, getPlanningNetwork } from "./dao-network.js";
-import { createGame, getGameById, getRanking, submitRoute } from "./dao-games.js";
+import {
+  createGame,
+  getExecutionState,
+  getGameById,
+  getGameResult,
+  getRanking,
+  revealNextStep,
+  submitRoute,
+} from "./dao-games.js";
 
 const app = express();
 const port = 3001;
@@ -69,18 +77,22 @@ function asyncHandler(handler) { // Utility to wrap async route handlers and cat
   };
 }
 
+// Get the game instructions 
 app.get("/api/instructions", (req, res) => {
   res.json({
     title: "Last Race",
     text: [
-      "Plan a route across the underground network before the timer expires.",
-      "Each game starts with 20 coins.",
-      "During execution, random events can add or remove coins.",
-      "Registered users can play and appear in the ranking.",
+      "Study the complete underground network during the setup phase.",
+      "During planning, build a route from the assigned start to the destination within 90 seconds.",
+      "Each segment may be used only once, while the same station may be visited more than once.",
+      "Line changes are allowed only at interchange stations.",
+      "Each game starts with 20 coins. Random events add or remove coins during execution.",
+      "Invalid or incomplete routes score zero. Registered users appear in the ranking with their best score.",
     ],
   });
 });
 
+// Authentication routes
 app.post("/api/sessions", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err); 
@@ -100,6 +112,7 @@ app.get("/api/sessions/current", (req, res) => {
   return res.json(req.user);
 });
 
+// Logout route that destroys the user session and clears the cookie
 app.delete("/api/sessions/current", isLoggedIn, (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
@@ -107,6 +120,7 @@ app.delete("/api/sessions/current", isLoggedIn, (req, res, next) => {
   });
 });
 
+// Get the network data for the planning phase, protected by authentication middleware
 app.get(
   "/api/network",
   isLoggedIn,
@@ -116,6 +130,7 @@ app.get(
   }),
 );
 
+// Create a new game for the authenticated user, returning the game details in the response
 app.post(
   "/api/games",
   isLoggedIn,
@@ -125,6 +140,7 @@ app.post(
   }),
 );
 
+// Get the details of a specific game by its ID, ensuring the game belongs to the authenticated user and is in the planning phase
 app.get(
   "/api/games/:id",
   isLoggedIn,
@@ -140,6 +156,7 @@ app.get(
   }),
 );
 
+// Get the planning data for a specific game, including the game details and the network, ensuring the game belongs to the authenticated user and is in the planning phase
 app.get(
   "/api/games/:id/planning-data",
   isLoggedIn,
@@ -160,6 +177,7 @@ app.get(
   }),
 );
 
+// Submit the planned route for a specific game, validating the route and updating the game status accordingly, ensuring the game belongs to the authenticated user and is in the planning phase
 app.post(
   "/api/games/:id/route",
   isLoggedIn,
@@ -169,7 +187,7 @@ app.post(
       return res.status(422).json({ error: "Invalid game id" });
     }
 
-    if (!Array.isArray(req.body.route)) {
+    if (!req.body || !Array.isArray(req.body.route)) {
       return res.status(422).json({ error: "Route must be an array" });
     }
 
@@ -181,6 +199,58 @@ app.post(
   }),
 );
 
+// Get the current execution state of a specific game, including revealed steps and current score, ensuring the game belongs to the authenticated user and is in the execution phase
+app.get(
+  "/api/games/:id/execution",
+  isLoggedIn,
+  asyncHandler(async (req, res) => {
+    const gameId = Number(req.params.id);
+    if (!Number.isInteger(gameId) || gameId <= 0) {
+      return res.status(422).json({ error: "Invalid game id" });
+    }
+
+    const state = await getExecutionState(gameId, req.user.id);
+    if (!state) return res.status(404).json({ error: "Game not found" });
+    if (state.error) return res.status(409).json({ error: state.error });
+    return res.json(state);
+  }),
+);
+
+// Reveal the next step in the execution of a specific game, updating the game state accordingly, ensuring the game belongs to the authenticated user and is in the execution phase
+app.post(
+  "/api/games/:id/execution/next",
+  isLoggedIn,
+  asyncHandler(async (req, res) => {
+    const gameId = Number(req.params.id);
+    if (!Number.isInteger(gameId) || gameId <= 0) {
+      return res.status(422).json({ error: "Invalid game id" });
+    }
+
+    const result = await revealNextStep(gameId, req.user.id);
+    if (!result) return res.status(404).json({ error: "Game not found" });
+    if (result.error) return res.status(409).json({ error: result.error });
+    return res.json(result);
+  }),
+);
+
+// Get the final result of a specific game after execution is completed, including the final score and any failure reason, ensuring the game belongs to the authenticated user and is in the completed phase
+app.get(
+  "/api/games/:id/result",
+  isLoggedIn,
+  asyncHandler(async (req, res) => {
+    const gameId = Number(req.params.id);
+    if (!Number.isInteger(gameId) || gameId <= 0) {
+      return res.status(422).json({ error: "Invalid game id" });
+    }
+
+    const result = await getGameResult(gameId, req.user.id);
+    if (!result) return res.status(404).json({ error: "Game not found" });
+    if (result.error) return res.status(409).json({ error: result.error });
+    return res.json(result);
+  }),
+);
+
+// Get the ranking of all users based on their best scores, ensuring only authenticated users can access the ranking
 app.get(
   "/api/ranking",
   isLoggedIn,
@@ -190,9 +260,13 @@ app.get(
   }),
 );
 
+// Global error handling middleware to catch any unhandled errors and return a consistent error response
 app.use((err, req, res, next) => {
-  console.error(err);
   if (res.headersSent) return next(err);
+  if (err instanceof SyntaxError && "body" in err) {
+    return res.status(400).json({ error: "Invalid JSON body" });
+  }
+  console.error(err);
   return res.status(500).json({ error: "Internal server error" });
 });
 
