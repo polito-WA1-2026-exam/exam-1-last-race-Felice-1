@@ -1,8 +1,8 @@
 function segmentKey(from, to) {
   return [from, to].sort((a, b) => a - b).join("-"); // Normalize the segment key to be independent of direction and return the key as a string
 }
-
-function getStationLineCounts(network) { // This function is used to determine which stations are interchanges and which lines pass through each station
+// This function is used to determine which stations are interchanges and which lines pass through each station
+function getStationLineCounts(network) { 
   const lineIdsByStation = new Map();
 
   for (const line of network.lines) {
@@ -50,13 +50,14 @@ function canAssignLines(route, segmentsByKey, lineIdsByStation) {
   return true;
 }
 
+// This function validates a proposed route for a game by checking various conditions such as the route's structure, station and segment validity, and line change rules
 export function validateRoute(game, route, network) {
   if (!Array.isArray(route) || route.length === 0) {
     return { valid: false, reason: "The route is empty" };
   }
 
   if (
-    route.some(
+    route.some( 
       (step) => step === null || typeof step !== "object" || Array.isArray(step),
     )
   ) {

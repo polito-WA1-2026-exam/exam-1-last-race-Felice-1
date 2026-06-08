@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getPlanningData, submitGameRoute } from "../API.js";
 import NetworkMap from "../components/NetworkMap.jsx";
@@ -22,6 +22,7 @@ function PlanningPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Fetch the game and network data when the component mounts and calculate the initial remaining time until the planning deadline. Handle loading and error states appropriately.
   useEffect(() => {
     let active = true;
 
@@ -45,14 +46,10 @@ function PlanningPage() {
     };
   }, [gameId]);
 
-  const usedSegments = useMemo(
-    () => new Set(route.map((step) => segmentKey(step.from, step.to))),
-    [route],
-  );
-
+  const usedSegments = new Set(route.map((step) => segmentKey(step.from, step.to)));
   const currentStationId = route.length > 0 ? route.at(-1).to : game?.startStationId;
 
-  const handleSubmitRoute = useCallback(async () => {
+  async function handleSubmitRoute() {
     if (!game || submitting) return; // Prevent submitting if game data is not loaded or if a submission is already in progress
 
     setSubmitting(true);
@@ -66,23 +63,50 @@ function PlanningPage() {
       setError(err.message);
       setSubmitting(false);
     }
-  }, [game, navigate, route, submitting]);
+  }
 
+  // Set up an interval timer to update the remaining time until the planning deadline every second. If the deadline is reached, automatically submit the current route. Make sure to clear the timer when the component unmounts or when the dependencies change.
   useEffect(() => {
-    if (loading || submitting || secondsLeft === null) return undefined;
+    if (loading || submitting || !game?.planningDeadline) return undefined;
 
-    const timerId = setTimeout(() => {
-      if (secondsLeft <= 1) {
-        setSecondsLeft(0);
-        handleSubmitRoute();
-      } else {
-        setSecondsLeft((current) => current - 1);
+    let timerId;
+    let autoSubmitted = false;
+
+    async function submitExpiredRoute() {
+      if (autoSubmitted) return; // To avoid multiple submissions if the timer fires again before the first submission completes, we use an autoSubmitted flag to ensure we only submit once when the deadline is reached
+      autoSubmitted = true;
+      clearInterval(timerId);
+      setSubmitting(true);
+      setError("");
+
+      try {
+        const routeResult = await submitGameRoute(game.id, route);
+
+        if (routeResult.valid) navigate(`/games/${game.id}/execution`);
+        else navigate(`/games/${game.id}/result`);
+      } catch (err) {
+        setError(err.message);
+        setSubmitting(false);
       }
-    }, 1000);
+    }
 
-    return () => clearTimeout(timerId);
-  }, [handleSubmitRoute, loading, secondsLeft, submitting]);
+    function updateTimer() {
+      const millisecondsLeft = Date.parse(game.planningDeadline) - Date.now();
+      const nextSecondsLeft = Math.max(0, Math.ceil(millisecondsLeft / 1000));
+      setSecondsLeft(nextSecondsLeft);
 
+      if (nextSecondsLeft === 0) {
+        submitExpiredRoute();
+      }
+    }
+
+    updateTimer();
+    timerId = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(timerId);
+  }, [game, loading, navigate, route, submitting]);
+
+  // Function to add a segment to the current route. Check if the segment is valid (i.e., it connects to the current station and hasn't been used already) before adding it to the route state.
   function addSegment(segment) {
     if (currentStationId == null || submitting) return;
 
@@ -120,7 +144,7 @@ function PlanningPage() {
 
       {error && <p className="error-message">{error}</p>}
 
-      {game && network && (
+      {game && network && ( // Only render the planning interface if both game and network data are available, otherwise show an appropriate message
         <>
           <div className="planning-summary">
             <p>
@@ -136,6 +160,7 @@ function PlanningPage() {
                 network={network}
                 showLines={false}
                 showSegments={false}
+                selectedRoute={route}
                 startStationId={game.startStationId}
                 destinationStationId={game.destinationStationId}
                 currentStationId={currentStationId}

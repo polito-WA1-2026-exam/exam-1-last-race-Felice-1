@@ -1,5 +1,5 @@
 import { get } from "./db.js";
-import { verifyPassword } from "./password.js";
+import { verifyPassword } from "../password.js";
 
 export async function getUserById(id) {
   const user = await get("SELECT id, username, name FROM users WHERE id = ?", [id]);

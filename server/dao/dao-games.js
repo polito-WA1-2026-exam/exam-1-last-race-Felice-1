@@ -1,6 +1,8 @@
 import { all, get, run } from "./db.js";
 import { getAdjacency, getNetwork, shortestDistance } from "./dao-network.js";
-import { validateRoute } from "./route-validation.js";
+import { validateRoute } from "../route-validation.js";
+
+const PLANNING_SUBMIT_GRACE_MS = 3000;
 
 export async function createGame(userId) {
   const network = await getNetwork();
@@ -70,15 +72,15 @@ export async function submitRoute(gameId, userId, route) {
     return { error: "Game is not in planning phase" };
   }
 
-  if (Date.now() > Date.parse(game.planningDeadline)) {
-    return failGame(gameId, userId, route, "The planning time has expired");
-  }
-
   const network = await getNetwork();
   const validation = validateRoute(game, route, network);
 
   if (!validation.valid) {
     return failGame(gameId, userId, route, validation.reason);
+  }
+
+  if (Date.now() > Date.parse(game.planningDeadline) + PLANNING_SUBMIT_GRACE_MS) { // We give a small grace period after the planning deadline to account for potential delays in the submission process, but if the deadline has clearly passed, we automatically fail the game with an appropriate reason
+    return failGame(gameId, userId, route, "The planning time has expired");
   }
 
   await run(

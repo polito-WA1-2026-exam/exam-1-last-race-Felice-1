@@ -222,6 +222,12 @@ h2 {
   stroke-width: 4;
 }
 
+.selected-route-segment {
+  stroke: #1f6f8b;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
 .station-dot {
   fill: #ffffff;
   stroke: #17202a;

@@ -8,7 +8,6 @@ function Navigation({ user, onLogout }) {
       </Link>
 
       <nav className="main-nav" aria-label="Main navigation">
-        <NavLink to="/">Instructions</NavLink>
         {user && <NavLink to="/setup">Setup</NavLink>}
         {user && <NavLink to="/ranking">Ranking</NavLink>}
       </nav>

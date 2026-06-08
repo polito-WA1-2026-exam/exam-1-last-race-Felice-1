@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const currentDir = dirname(fileURLToPath(import.meta.url)); // Gets the current directory of this file, which is useful for constructing the path to the SQLite database file
-const db = new sqlite3.Database(join(currentDir, "last-race.sqlite"));
+const db = new sqlite3.Database(join(currentDir, "..", "last-race.sqlite"));
 
 export function get(sql, params = []) {
   return new Promise((resolve, reject) => {

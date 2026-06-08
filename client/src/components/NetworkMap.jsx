@@ -6,6 +6,7 @@ function NetworkMap({
   network,
   showLines = true,
   showSegments = true,
+  selectedRoute = [],
   startStationId,
   destinationStationId,
   currentStationId,
@@ -16,7 +17,7 @@ function NetworkMap({
     <svg className="network-map" viewBox="80 70 760 520" role="img" aria-label="Metro network map">
       {showLines &&
         network.lines.map((line) => (
-          <polyline
+          <polyline // Use a polyline to draw the line by connecting all its stations in order
             key={line.id}
             points={line.stations.map((station) => `${station.x},${station.y}`).join(" ")} // Transform station coordinates into a string of points for the polyline
             fill="none"
@@ -45,6 +46,23 @@ function NetworkMap({
           );
         })}
 
+      {selectedRoute.map((step, index) => {
+        const from = stationById(network.stations, step.from);
+        const to = stationById(network.stations, step.to);
+        if (!from || !to) return null;
+
+        return (
+          <line
+            key={`${step.from}-${step.to}-${index}`}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
+            className="selected-route-segment"
+          />
+        );
+      })}
+
       {network.stations.map((station) => (
         <g key={station.id}>
           <circle
@@ -54,7 +72,7 @@ function NetworkMap({
             className={[
               "station-dot",
               station.id === startStationId ? "start-station" : "",
-              station.id === destinationStationId ? "destination-station" : "",
+              station.id === destinationStationId ? "destination-station" : "", // Add specific classes for start and destination stations (start-station has a green circle while destination-station has a red circle and current-station has a blue circle)
               station.id === currentStationId ? "current-station" : "",
             ].join(" ")}
           />

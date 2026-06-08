@@ -1,4 +1,4 @@
-import { get, run } from "./db.js";
+import { get, run } from "./dao/db.js";
 import { hashPassword } from "./password.js";
 
 const users = [
