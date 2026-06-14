@@ -7,6 +7,8 @@ export async function getUserById(id) {
 }
 
 export async function getUserByCredentials(username, password) {
+  if (typeof username !== "string" || typeof password !== "string") return false;
+
   const user = await get("SELECT * FROM users WHERE username = ?", [username.trim()]);
   if (!user) return false;
 

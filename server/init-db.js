@@ -131,7 +131,7 @@ async function seedDatabase() {
   if (userCount.count > 0) return;
 
   for (const user of users) {
-    const { salt, hash } = hashPassword(user.password);
+    const { salt, hash } = await hashPassword(user.password);
     await run(
       "INSERT INTO users (username, name, password_salt, password_hash) VALUES (?, ?, ?, ?)",
       [user.username, user.name, salt, hash],

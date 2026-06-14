@@ -106,7 +106,8 @@ function PlanningPage() {
     return () => clearInterval(timerId);
   }, [game, loading, navigate, route, submitting]);
 
-  // Function to add a segment to the current route. Check if the segment is valid (i.e., it connects to the current station and hasn't been used already) before adding it to the route state.
+  // Add any unused segment. Connected segments are oriented from the current station;
+  // disconnected segments keep the order shown in the list and will make the route invalid.
   function addSegment(segment) {
     if (currentStationId == null || submitting) return;
 
@@ -117,6 +118,8 @@ function PlanningPage() {
       setRoute((currentRoute) => [...currentRoute, { from: segment.from, to: segment.to }]);
     } else if (segment.to === currentStationId) {
       setRoute((currentRoute) => [...currentRoute, { from: segment.to, to: segment.from }]);
+    } else {
+      setRoute((currentRoute) => [...currentRoute, { from: segment.from, to: segment.to }]);
     }
   }
 
@@ -178,10 +181,7 @@ function PlanningPage() {
                 {network.segments.map((segment) => {
                   const key = segmentKey(segment.from, segment.to);
                   const used = usedSegments.has(key);
-                  const selectable =
-                    !submitting &&
-                    !used &&
-                    (segment.from === currentStationId || segment.to === currentStationId);
+                  const selectable = !submitting && !used;
 
                   return (
                     <button

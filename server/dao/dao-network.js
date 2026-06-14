@@ -32,7 +32,13 @@ export async function getPlanningNetwork() {
 
 export function getSegmentsFromLineStations(lineStations) {
   const segmentsByKey = new Map();
-  const grouped = Map.groupBy(lineStations, (station) => station.line_id); // Produces array of stations for each line
+  const grouped = new Map();
+
+  for (const station of lineStations) { // Group stations by line_id to identify consecutive stations on the same line, which form segments. The segment key is created by sorting the station IDs to ensure consistency regardless of travel direction.
+    const stations = grouped.get(station.line_id) ?? [];
+    stations.push(station);
+    grouped.set(station.line_id, stations);
+  }
 
   for (const stations of grouped.values()) {
     for (let i = 0; i < stations.length - 1; i += 1) {

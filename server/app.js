@@ -24,10 +24,7 @@ app.use(
   session({
     secret: "last-race-development-secret",
     resave: false, // Don't save session if unmodified
-    saveUninitialized: false, // Don't create session until something is stored
-    cookie: {
-      sameSite: "lax", // Use "lax" to allow cookies in top-level navigation while preventing CSRF in other contexts
-    },
+    saveUninitialized: false // Don't create session until something is stored
   }),
 );
 app.use(passport.authenticate("session")); // Use Passport's session authentication middleware to restore authentication state from the session on each request

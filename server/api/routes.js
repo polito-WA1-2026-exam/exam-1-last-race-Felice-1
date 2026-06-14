@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import {
   createNewGame,
-  getGame,
   getGameExecution,
   getPlanningData,
   getResult,
@@ -27,7 +26,6 @@ router.delete("/sessions/current", isLoggedIn, logout);
 router.get("/network", isLoggedIn, asyncHandler(getFullNetwork));
 
 router.post("/games", isLoggedIn, asyncHandler(createNewGame));
-router.get("/games/:id", isLoggedIn, asyncHandler(getGame));
 router.get("/games/:id/planning-data", isLoggedIn, asyncHandler(getPlanningData));
 router.post("/games/:id/route", isLoggedIn, asyncHandler(submitGameRoute));
 router.get("/games/:id/execution", isLoggedIn, asyncHandler(getGameExecution));

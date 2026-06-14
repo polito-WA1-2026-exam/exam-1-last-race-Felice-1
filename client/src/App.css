@@ -190,6 +190,12 @@ h2 {
   font-weight: 700;
 }
 
+.app-error {
+  max-width: 1180px;
+  margin: 18px auto 0;
+  padding: 0 40px;
+}
+
 .status-message {
   margin: 0 0 18px;
   color: #516070;

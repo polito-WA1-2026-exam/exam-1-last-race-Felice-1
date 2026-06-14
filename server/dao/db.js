@@ -26,7 +26,7 @@ export function all(sql, params = []) {
 // For INSERT or CREATE TABLE statements
 export function run(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function callback(err) {
+    db.run(sql, params, function callback(err) { // I use a regular function here instead of an arrow function because I need access to the "this" context provided by sqlite3, which contains information about the last inserted ID and the number of changes made by the query.
       if (err) reject(err);
       else resolve({ id: this.lastID, changes: this.changes });
     });

@@ -2,8 +2,6 @@ import { all, get, run } from "./db.js";
 import { getAdjacency, getNetwork, shortestDistance } from "./dao-network.js";
 import { validateRoute } from "../route-validation.js";
 
-const PLANNING_SUBMIT_GRACE_MS = 3000;
-
 export async function createGame(userId) {
   const network = await getNetwork();
   const adjacency = getAdjacency(network.segments);
@@ -79,10 +77,6 @@ export async function submitRoute(gameId, userId, route) {
     return failGame(gameId, userId, route, validation.reason);
   }
 
-  if (Date.now() > Date.parse(game.planningDeadline) + PLANNING_SUBMIT_GRACE_MS) { // We give a small grace period after the planning deadline to account for potential delays in the submission process, but if the deadline has clearly passed, we automatically fail the game with an appropriate reason
-    return failGame(gameId, userId, route, "The planning time has expired");
-  }
-
   await run(
     `UPDATE games
      SET status = 'executing', route_json = ?, failure_reason = NULL
@@ -109,7 +103,7 @@ export async function getExecutionState(gameId, userId) {
     userId,
   ]);
   const route = JSON.parse(storedGame.route_json);
-  const revealedSteps = await all( // check if we can optimize this query by joining with events and stations to get all necessary info in one go, instead of multiple queries in revealNextStep
+  const revealedSteps = await all(
     `SELECT ge.step_index AS stepIndex,
             from_station.name AS fromStationName,
             to_station.name AS toStationName,

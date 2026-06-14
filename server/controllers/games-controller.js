@@ -24,15 +24,6 @@ export async function createNewGame(req, res) {
   res.status(201).json(game);
 }
 
-export async function getGame(req, res) {
-  const gameId = parseGameId(req, res);
-  if (gameId === null) return;
-
-  const game = await getGameById(gameId, req.user.id);
-  if (!game) return res.status(404).json({ error: "Game not found" });
-  return res.json(game);
-}
-
 export async function getPlanningData(req, res) {
   const gameId = parseGameId(req, res);
   if (gameId === null) return;

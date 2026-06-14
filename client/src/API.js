@@ -2,7 +2,7 @@ const API_URL = `${window.location.protocol}//${window.location.hostname}:3001/a
 
 async function request(path, options = {}) {
   const headers = { ...options.headers };
-  if (options.body !== undefined) {
+  if (options.body !== undefined) { // If a body is provided, we assume it's JSON and set the appropriate Content-Type header. This allows the server to correctly parse the request body.
     headers["Content-Type"] = "application/json";
   }
 

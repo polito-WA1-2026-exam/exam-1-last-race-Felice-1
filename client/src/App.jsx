@@ -21,6 +21,7 @@ function App() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null); // Logged user state or null
   const [checkingSession, setCheckingSession] = useState(true); // State to indicate if session is being checked
+  const [sessionError, setSessionError] = useState(""); // State to hold any error message related to session checking or logout
 
   useEffect(() => {
     let active = true;
@@ -42,9 +43,15 @@ function App() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    setUser(null);
-    navigate("/");
+    setSessionError("");
+
+    try {
+      await logout();
+      setUser(null);
+      navigate("/");
+    } catch (err) {
+      setSessionError(err.message);
+    }
   }
 
   if (checkingSession) {
@@ -55,6 +62,7 @@ function App() {
     <div className="app-shell">
       <Navigation user={user} onLogout={handleLogout} />
       <main>
+        {sessionError && <p className="app-error error-message">{sessionError}</p>}
         <Routes>
           <Route path="/" element={<HomePage user={user} />} />
           <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
